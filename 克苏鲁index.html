@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>黑夜逃亡：克苏鲁破晓 DEMO</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: #111; }
+    canvas { display: block; background: #222; }
+    #buttons {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      z-index: 10;
+    }
+    button {
+      margin: 4px;
+      padding: 6px 12px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div id="buttons">
+    <button onclick="toggleGodMode()">无敌</button>
+    <button onclick="toggleAmmo()">无限子弹</button>
+    <button onclick="toggleFirePower()">超级火力</button>
+  </div>
+  <canvas id="gameCanvas" width="800" height="480"></canvas>
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let player = { x: 100, y: 400, vy: 0, onGround: true, hp: 100 };
+    let bullets = [];
+    let enemies = [];
+    let godMode = false;
+    let infiniteAmmo = false;
+    let superFire = false;
+
+    let gravity = 0.6;
+    let jumpForce = -12;
+
+    function toggleGodMode() {
+      godMode = !godMode;
+      alert("无敌模式: " + (godMode ? "开启" : "关闭"));
+    }
+    function toggleAmmo() {
+      infiniteAmmo = !infiniteAmmo;
+      alert("无限子弹: " + (infiniteAmmo ? "开启" : "关闭"));
+    }
+    function toggleFirePower() {
+      superFire = !superFire;
+      alert("超级火力: " + (superFire ? "开启" : "关闭"));
+    }
+
+    function spawnEnemy() {
+      enemies.push({ x: 800, y: 400, hp: 1 });
+    }
+
+    function shoot() {
+      if (infiniteAmmo || bullets.length < 5) {
+        bullets.push({ x: player.x + 20, y: player.y + 10, dx: superFire ? 10 : 5 });
+      }
+    }
+
+    function update() {
+      player.vy += gravity;
+      player.y += player.vy;
+      if (player.y >= 400) {
+        player.y = 400;
+        player.vy = 0;
+        player.onGround = true;
+      } else {
+        player.onGround = false;
+      }
+
+      bullets.forEach((b, i) => {
+        b.x += b.dx;
+        if (b.x > canvas.width) bullets.splice(i, 1);
+      });
+
+      enemies.forEach((e, ei) => {
+        e.x -= 2;
+        bullets.forEach((b, bi) => {
+          if (Math.abs(b.x - e.x) < 20 && Math.abs(b.y - e.y) < 20) {
+            e.hp--;
+            bullets.splice(bi, 1);
+            if (e.hp <= 0) enemies.splice(ei, 1);
+          }
+        });
+
+        if (!godMode && Math.abs(player.x - e.x) < 30) {
+          player.hp -= 1;
+          if (player.hp <= 0) alert("你疯了！");
+        }
+      });
+
+      if (Math.random() < 0.02) spawnEnemy();
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw player
+      ctx.fillStyle = "cyan";
+      ctx.fillRect(player.x, player.y, 20, 40);
+
+      // Draw bullets
+      ctx.fillStyle = "yellow";
+      bullets.forEach(b => ctx.fillRect(b.x, b.y, 10, 4));
+
+      // Draw enemies
+      ctx.fillStyle = "red";
+      enemies.forEach(e => ctx.fillRect(e.x, e.y, 20, 40));
+
+      // Draw HP
+      ctx.fillStyle = "white";
+      ctx.fillText("理智值: " + player.hp, 10, 470);
+    }
+
+    function gameLoop() {
+      update();
+      draw();
+      requestAnimationFrame(gameLoop);
+    }
+
+    document.addEventListener('touchstart', e => {
+      const x = e.touches[0].clientX;
+      if (x < window.innerWidth / 2) {
+        if (player.onGround) player.vy = jumpForce;
+      } else {
+        shoot();
+      }
+    });
+
+    gameLoop();
+  </script>
+</body>
+</html>
